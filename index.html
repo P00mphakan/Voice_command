@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Mac Agent - Direct Voice to Sheet</title>
+    <title>Mac Agent - Multi-User Version</title>
     <style>
         body { font-family: sans-serif; background: #121212; color: #fff; text-align: center; padding-top: 40px; }
         .btn { padding: 12px 25px; font-size: 16px; border: none; border-radius: 25px; cursor: pointer; transition: 0.3s; margin: 10px; font-weight: bold; }
@@ -12,21 +12,12 @@
         .log-box { margin: 20px auto; width: 80%; max-width: 600px; background: #1e1e1e; border: 1px solid #333; padding: 15px; text-align: left; border-radius: 10px; font-family: monospace; font-size: 14px; color: #00FF00; max-height: 250px; overflow-y: auto; }
         .visualizer-container { display: flex; justify-content: center; align-items: center; height: 100px; margin-top: 10px; }
         #audioCircle { width: 40px; height: 40px; background: rgba(76, 175, 80, 0.2); border: 3px solid #4CAF50; border-radius: 50%; transition: transform 0.05s ease-out; }
-        
-        /* ✨ เพิ่มสไตล์กล่องกรอกรหัส */
-        .key-input-container { margin: 20px auto; width: 80%; max-width: 500px; }
-        .key-input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; font-size: 14px; text-align: center; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
-    <h1>Mac Agent 🚀 (เวอร์ชันถอดรหัสเสียงลง Sheet ตรงๆ)</h1>
-    
-    <div class="key-input-container">
-        <input type="password" id="groqKeyInput" class="key-input" placeholder="วาง Groq API Key (gsk_...) ของคุณที่นี่">
-    </div>
-
-    <p>กรอกคีย์ด้านบน จากนั้นกดปุ่มสีเขียวเพื่อพูดประโยคภาษาไทยได้เลยครับ</p>
+    <h1>Mac Agent 🚀 (ระบบสั่งเสียงส่วนกลาง)</h1>
+    <p>กดปุ่มสีเขียวแล้วพูดประโยคภาษาไทยยาวๆ ได้ทันทีครับ</p>
     
     <div>
         <button id="recordBtn" class="btn record">เริ่มพูดสั่งงาน</button>
@@ -39,14 +30,10 @@
     <div id="status" class="status">สถานะ: พร้อมใช้งาน</div>
     
     <div style="margin-top: 20px; font-weight: bold; color: #888;">ระบบบันทึกสถานะ (Debug Log):</div>
-    <div id="logBox" class="log-box">>> รอนำข้อมูลเข้าคิว...</div>
+    <div id="logBox" class="log-box">>> รอรับข้อมูลเสียง...</div>
 
     <script>
-        // 🔗 URL Webhook ของ n8n มหาลัยของคุณ
-        const N8N_WEBHOOK_URL = "https://n8n.scmc.cmu.ac.th/webhook/mac-agent"; 
-
         const recordBtn = document.getElementById('recordBtn');
-        const groqKeyInput = document.getElementById('groqKeyInput'); // ✨
         const statusDiv = document.getElementById('status');
         const logBox = document.getElementById('logBox');
         const audioCircle = document.getElementById('audioCircle');
@@ -61,22 +48,7 @@
             logBox.scrollTop = logBox.scrollHeight;
         }
 
-        // โหลดคีย์เก่าที่เคยกรอกไว้เพื่อความสะดวก (ถ้ามี)
-        if(localStorage.getItem('saved_groq_key')) {
-            groqKeyInput.value = localStorage.getItem('saved_groq_key');
-        }
-
         recordBtn.addEventListener('click', async () => {
-            // 🛑 เช็กว่ากรอกคีย์หรือยังก่อนเริ่มอัดเสียง
-            const currentKey = groqKeyInput.value.trim();
-            if (!currentKey) {
-                alert("กรุณากรอก Groq API Key ก่อนใช้งานครับ");
-                statusDiv.innerText = "❌ กรุณากรอก API Key";
-                return;
-            }
-            // บันทึกเก็บไว้ในเบราว์เซอร์ จะได้ไม่ต้องกรอกใหม่ทุกครั้ง
-            localStorage.setItem('saved_groq_key', currentKey);
-
             if (!isRecording) {
                 audioChunks = [];
                 try {
@@ -88,16 +60,15 @@
                     mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
                     
                     mediaRecorder.onstop = async () => {
-                        statusDiv.innerText = "⚡ ส่งไฟล์เสียงแกะภาษาไทยไปที่ Groq Whisper...";
+                        statusDiv.innerText = "⚡ ส่งก้อนเสียงเข้าท่อลับ Vercel ประมวลผล...";
                         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                        addLog(`ขนาดไฟล์เสียง: ${audioBlob.size} ไบต์`);
-                        await processVoiceWithGroq(audioBlob, currentKey);
+                        await processVoiceWithVercel(audioBlob);
                     };
 
                     mediaRecorder.start();
                     recordBtn.innerText = "กำลังฟัง... พูดเสร็จกดปุ่มนี้อีกครั้ง";
                     recordBtn.className = "btn recording";
-                    statusDiv.innerText = "ระบบกำลังอัดเสียงคำสั่ง...";
+                    statusDiv.innerText = "ระบบกำลังรับเสียงคำสั่ง...";
                 } catch (err) {
                     statusDiv.innerText = "❌ เกิดข้อผิดพลาดระบบไมค์";
                     addLog(`Mic Error: ${err.message}`);
@@ -115,7 +86,7 @@
         function setupAudioVisualizer(stream) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioContext.createAnalyser();
-            source = document.createMediaStreamSource ? document.createMediaStreamSource(stream) : audioContext.createMediaStreamSource(stream);
+            source = audioContext.createMediaStreamSource(stream);
             source.connect(analyser);
             analyser.fftSize = 32;
             dataArray = new Uint8Array(analyser.frequencyBinCount);
@@ -131,46 +102,34 @@
             draw();
         }
 
-        async function processVoiceWithGroq(audioBlob, apiKey) {
+        async function processVoiceWithVercel(audioBlob) {
             const formData = new FormData();
             formData.append("file", audioBlob, "audio.wav");
             formData.append("model", "whisper-large-v3");
             formData.append("language", "th");
 
             try {
-                addLog("เริ่มใช้ Whisper ถอดรหัสเสียงพูด...");
-                const whisperRes = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+                addLog("ยิงก้อนเสียงเข้าหา Serverless Function...");
+                // 🔗 ยิงเข้าหาท่อลับตัวเอง (/api/transcribe) ระบบจะผูกคีย์หลังบ้านให้อัตโนมัติ
+                const response = await fetch("/api/transcribe", {
                     method: "POST",
-                    headers: { "Authorization": `Bearer ${apiKey}` }, // ✨ ใช้คีย์จากหน้าเว็บ
                     body: formData
                 });
-                const whisperData = await whisperRes.json();
-                const userText = whisperData.text;
-
-                if (!userText) {
-                    statusDiv.innerText = "❌ ถอดเสียงไม่ได้ ลองพูดใหม่อีกครั้งครับ";
-                    return;
-                }
-
-                addLog(`ข้อความภาษาไทยที่แกะได้: "${userText}"`);
-                statusDiv.innerText = `🚀 กำลังส่งข้อความเข้า n8n...`;
-
-                const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
-                    method: 'POST',
-                    mode: 'cors', 
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ appName: userText.trim() })
-                });
                 
-                if (n8nResponse.ok) {
-                    statusDiv.innerText = `✅ บันทึกประโยค "${userText}" ลงระบบสำเร็จ!`;
-                    addLog(`ส่งข้อความเข้า n8n เคลียร์งานเรียบร้อย!`);
+                const resData = await response.json();
+                
+                if (response.ok && resData.success) {
+                    statusDiv.innerText = `✅ บันทึกประโยค "${resData.text}" สำเร็จ!`;
+                    addLog(`[สำเร็จ] หลังบ้านดึงคีย์รันงานและโยนเข้า n8n เรียบร้อย: "${resData.text}"`);
+                } else {
+                    statusDiv.innerText = "❌ เกิดข้อผิดพลาดที่ระบบหลังบ้าน";
+                    addLog(`Backend Error: ${JSON.stringify(resData)}`);
                 }
 
             } catch (err) {
                 console.error(err);
-                statusDiv.innerText = "❌ เกิดข้อผิดพลาดเชื่อมต่ออินเทอร์เน็ต";
-                addLog(`Error: ${err.message}`);
+                statusDiv.innerText = "❌ การเชื่อมต่อเครือข่ายขัดข้อง";
+                addLog(`Network Error: ${err.message}`);
             }
         }
     </script>
