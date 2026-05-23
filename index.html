@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Mac Agent - Multi-User Version</title>
+    <title>Voice Agent - Multi-User Version</title>
     <style>
         body { font-family: sans-serif; background: #121212; color: #fff; text-align: center; padding-top: 40px; }
         .btn { padding: 12px 25px; font-size: 16px; border: none; border-radius: 25px; cursor: pointer; transition: 0.3s; margin: 10px; font-weight: bold; }
@@ -16,8 +16,8 @@
 </head>
 <body>
 
-    <h1>Mac Agent 🚀 (ระบบสั่งเสียงส่วนกลาง)</h1>
-    <p>กดปุ่มสีเขียวแล้วพูดประโยคภาษาไทยยาวๆ ได้ทันทีครับ</p>
+    <h1>Voice Agent 🚀 (ระบบสั่งเสียง)</h1>
+    <p>กดปุ่มสีเขียวแล้วพูดได้ทันทีครับ</p>
     
     <div>
         <button id="recordBtn" class="btn record">เริ่มพูดสั่งงาน</button>
@@ -31,6 +31,7 @@
     
     <div style="margin-top: 20px; font-weight: bold; color: #888;">ระบบบันทึกสถานะ (Debug Log):</div>
     <div id="logBox" class="log-box">>> รอรับข้อมูลเสียง...</div>
+    <div id="logBox" class="log-box" style="display: none;">>> รอรับข้อมูลเสียง...</div>
 
     <script>
         const recordBtn = document.getElementById('recordBtn');
@@ -44,8 +45,9 @@
         let audioContext, analyser, dataArray, source, animationFrameId;
 
         function addLog(message) {
-            logBox.innerHTML += `<br>>> ${message}`;
-            logBox.scrollTop = logBox.scrollHeight;
+            console.log(`>> ${message}`);
+            // logBox.innerHTML += `<br>>> ${message}`;
+            // logBox.scrollTop = logBox.scrollHeight;
         }
 
         recordBtn.addEventListener('click', async () => {
