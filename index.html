@@ -2,24 +2,84 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Voice Agent - Multi-User Version</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mac Agent - Multi-User LIFF</title>
     <style>
-        body { font-family: sans-serif; background: #121212; color: #fff; text-align: center; padding-top: 40px; }
-        .btn { padding: 12px 25px; font-size: 16px; border: none; border-radius: 25px; cursor: pointer; transition: 0.3s; margin: 10px; font-weight: bold; }
-        .record { background: #4CAF50; color: white; }
-        .recording { background: #222; color: #f44336; border: 2px solid #f44336; }
-        .status { margin-top: 20px; font-size: 18px; color: #aaa; padding: 10px; }
-        .log-box { margin: 20px auto; width: 80%; max-width: 600px; background: #1e1e1e; border: 1px solid #333; padding: 15px; text-align: left; border-radius: 10px; font-family: monospace; font-size: 14px; color: #00FF00; max-height: 250px; overflow-y: auto; }
-        .visualizer-container { display: flex; justify-content: center; align-items: center; height: 100px; margin-top: 10px; }
-        #audioCircle { width: 40px; height: 40px; background: rgba(76, 175, 80, 0.2); border: 3px solid #4CAF50; border-radius: 50%; transition: transform 0.05s ease-out; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: #121212; 
+            color: #fff; 
+            text-align: center; 
+            padding: 20px 15px; 
+            margin: 0;
+            box-sizing: border-box;
+        }
+        h1 { font-size: 22px; margin-bottom: 5px; }
+        p { font-size: 14px; color: #ccc; margin-bottom: 25px; }
+
+        /* ✨ อัปเกรดปุ่มกดให้ใหญ่ ยักษ์ สะใจ กดง่ายบนมือถือ */
+        .btn-container { margin: 25px auto; }
+        .btn { 
+            padding: 18px 40px; 
+            font-size: 20px; 
+            border: none; 
+            border-radius: 40px; 
+            cursor: pointer; 
+            transition: all 0.2s ease-in-out; 
+            font-weight: bold; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            width: 85%;
+            max-width: 320px;
+        }
+        .record { 
+            background: #4CAF50; 
+            color: white; 
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
+        }
+        .recording { 
+            background: #f44336; 
+            color: white; 
+            border: none;
+            animation: pulse-border 1.5s infinite;
+            box-shadow: 0 0 25px rgba(244, 67, 54, 0.6);
+        }
+        
+        /* ✨ ขยายขนาดวงกลม Visualizer ให้ใหญ่กระแทกตา */
+        .visualizer-container { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 140px; 
+            margin: 20px 0; 
+        }
+        #audioCircle { 
+            width: 80px;         /* 🟢 ขยายใหญ่ขึ้นจากเดิมเท่าตัว */
+            height: 80px;        /* 🟢 ขยายใหญ่ขึ้นจากเดิมเท่าตัว */
+            background: rgba(76, 175, 80, 0.25); 
+            border: 4px solid #4CAF50; 
+            border-radius: 50%; 
+            transition: transform 0.04s ease-out; 
+        }
+        
+        .status { margin-top: 15px; font-size: 16px; color: #00FF00; font-weight: 500; }
+
+        /* แอนิเมชันปุ่มตอนอัดเสียง */
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(244, 67, 54, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+        }
+
+        /* ซ่อนกล่องบันทึกสถานะลับหลังบ้านตามบรีฟเดิม */
+        .log-box { display: none; }
     </style>
 </head>
 <body>
 
     <h1>Voice Agent 🚀 (ระบบสั่งเสียง)</h1>
-    <p>กดปุ่มสีเขียวแล้วพูดได้ทันทีครับ</p>
+    <p>กดปุ่มยักษ์สีเขียวด้านล่าง แล้วพูดประโยคคำสั่งได้ทันทีครับ</p>
     
-    <div>
+    <div class="btn-container">
         <button id="recordBtn" class="btn record">เริ่มพูดสั่งงาน</button>
     </div>
     
@@ -28,15 +88,11 @@
     </div>
 
     <div id="status" class="status">สถานะ: พร้อมใช้งาน</div>
-    
-    <div style="margin-top: 20px; font-weight: bold; color: #888;">ระบบบันทึกสถานะ (Debug Log):</div>
-    <div id="logBox" class="log-box">>> รอรับข้อมูลเสียง...</div>
-    <div id="logBox" class="log-box" style="display: none;">>> รอรับข้อมูลเสียง...</div>
+    <div id="logBox" class="log-box"></div>
 
     <script>
         const recordBtn = document.getElementById('recordBtn');
         const statusDiv = document.getElementById('status');
-        const logBox = document.getElementById('logBox');
         const audioCircle = document.getElementById('audioCircle');
         
         let mediaRecorder;
@@ -45,9 +101,7 @@
         let audioContext, analyser, dataArray, source, animationFrameId;
 
         function addLog(message) {
-            console.log(`>> ${message}`);
-            // logBox.innerHTML += `<br>>> ${message}`;
-            // logBox.scrollTop = logBox.scrollHeight;
+            console.log(`>> ${message}`); 
         }
 
         recordBtn.addEventListener('click', async () => {
@@ -62,15 +116,19 @@
                     mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
                     
                     mediaRecorder.onstop = async () => {
-                        statusDiv.innerText = "⚡ ส่งก้อนเสียงเข้าท่อลับ Vercel ประมวลผล...";
+                        statusDiv.innerText = "⚡ กำลังส่งเสียงไปถอดความ...";
+                        audioCircle.style.borderColor = "#ff9800"; // เปลี่ยนสีวงกลมตอนประมวลผล
+                        audioCircle.style.background = "rgba(255, 152, 0, 0.2)";
                         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
                         await processVoiceWithVercel(audioBlob);
                     };
 
                     mediaRecorder.start();
-                    recordBtn.innerText = "กำลังฟัง... พูดเสร็จกดปุ่มนี้อีกครั้ง";
+                    recordBtn.innerText = "🛑 พูดเสร็จกดตรงนี้";
                     recordBtn.className = "btn recording";
-                    statusDiv.innerText = "ระบบกำลังรับเสียงคำสั่ง...";
+                    statusDiv.innerText = "🎤 กำลังฟังเสียงของคุณ...";
+                    audioCircle.style.borderColor = "#f44336";
+                    audioCircle.style.background = "rgba(244, 67, 54, 0.2)";
                 } catch (err) {
                     statusDiv.innerText = "❌ เกิดข้อผิดพลาดระบบไมค์";
                     addLog(`Mic Error: ${err.message}`);
@@ -99,7 +157,11 @@
                 analyser.getByteFrequencyData(dataArray);
                 let total = 0;
                 for (let i = 0; i < dataArray.length; i++) total += dataArray[i];
-                audioCircle.style.transform = `scale(${1 + ((total/dataArray.length) / 30)})`;
+                
+                // ✨ ปรับจังหวะสั่น (Scale) ของวงกลมตัวใหญ่ให้เคลื่อนไหวตอบรับเสียงได้ไวและนุ่มนวลขึ้น
+                let amplitude = total / dataArray.length;
+                let scaleFactor = 1 + (amplitude / 40); 
+                audioCircle.style.transform = `scale(${scaleFactor})`;
             }
             draw();
         }
@@ -111,8 +173,7 @@
             formData.append("language", "th");
 
             try {
-                addLog("ยิงก้อนเสียงเข้าหา Serverless Function...");
-                // 🔗 ยิงเข้าหาท่อลับตัวเอง (/api/transcribe) ระบบจะผูกคีย์หลังบ้านให้อัตโนมัติ
+                addLog("ส่งไฟล์เสียงเข้าสู่ Serverless API ลับหลังบ้าน...");
                 const response = await fetch("/api/transcribe", {
                     method: "POST",
                     body: formData
@@ -121,16 +182,22 @@
                 const resData = await response.json();
                 
                 if (response.ok && resData.success) {
-                    statusDiv.innerText = `✅ บันทึกประโยค "${resData.text}" สำเร็จ!`;
-                    addLog(`[สำเร็จ] หลังบ้านดึงคีย์รันงานและโยนเข้า n8n เรียบร้อย: "${resData.text}"`);
+                    statusDiv.innerText = `✅ ส่งคำสั่งสำเร็จ!`;
+                    // รีเซ็ตหน้าจอกลับมาสีเขียวปกติพร้อมรับคำสั่งถัดไป
+                    setTimeout(() => {
+                        statusDiv.innerText = "สถานะ: พร้อมใช้งาน";
+                        audioCircle.style.borderColor = "#4CAF50";
+                        audioCircle.style.background = "rgba(76, 175, 80, 0.25)";
+                        audioCircle.style.transform = "scale(1)";
+                    }, 2500);
                 } else {
-                    statusDiv.innerText = "❌ เกิดข้อผิดพลาดที่ระบบหลังบ้าน";
+                    statusDiv.innerText = "❌ หลังบ้านขัดข้อง ลองอีกครั้ง";
                     addLog(`Backend Error: ${JSON.stringify(resData)}`);
                 }
 
             } catch (err) {
                 console.error(err);
-                statusDiv.innerText = "❌ การเชื่อมต่อเครือข่ายขัดข้อง";
+                statusDiv.innerText = "❌ เครือข่ายขัดข้อง";
                 addLog(`Network Error: ${err.message}`);
             }
         }
